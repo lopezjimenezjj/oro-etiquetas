@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Etiquetas - ORO Construcción S.A.S</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 720px;
+            overflow: hidden;
+        }
+        header {
+            background: #000;
+            color: white;
+            padding: 28px 32px;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        header p {
+            margin-top: 6px;
+            font-size: 13px;
+            opacity: 0.7;
+            letter-spacing: 0.5px;
+        }
+        main {
+            padding: 32px;
+        }
+        .instructions {
+            background: #f8f8f8;
+            border-left: 4px solid #000;
+            padding: 16px 18px;
+            border-radius: 6px;
+            margin-bottom: 28px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .instructions strong { color: #000; }
+        .instructions code {
+            background: #e8e8e8;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        .form-group {
+            margin-bottom: 22px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #222;
+        }
+        .file-input-wrapper {
+            position: relative;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 22px;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+            background: #fafafa;
+        }
+        .file-input-wrapper:hover {
+            border-color: #000;
+            background: #f0f0f0;
+        }
+        .file-input-wrapper.has-file {
+            border-color: #2d7a2d;
+            background: #f0f8f0;
+        }
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .file-icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+            opacity: 0.6;
+        }
+        .file-text {
+            font-size: 14px;
+            color: #666;
+        }
+        .file-name {
+            font-weight: 600;
+            color: #2d7a2d;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+        button {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .btn-primary {
+            background: #000;
+            color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: #333;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+        .btn-secondary {
+            background: #e8e8e8;
+            color: #333;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background: #d8d8d8;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        .status.show { display: block; }
+        .status.success {
+            background: #e8f5e8;
+            color: #2d5a2d;
+            border: 1px solid #c3e6c3;
+        }
+        .status.error {
+            background: #fde8e8;
+            color: #8b2d2d;
+            border: 1px solid #f5c6c6;
+        }
+        .status.info {
+            background: #e8f0fd;
+            color: #2d4a8b;
+            border: 1px solid #c6d4f5;
+        }
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .columns-list {
+            display: inline-flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+        .columns-list code {
+            background: #e8e8e8;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+        footer {
+            text-align: center;
+            padding: 16px;
+            font-size: 12px;
+            color: #999;
+            border-top: 1px solid #eee;
+        }
+        .logo-details {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 22px;
+        }
+        .logo-details summary {
+            cursor: pointer;
+            font-size: 13px;
+            color: #555;
+            user-select: none;
+            padding: 2px 0;
+        }
+        .logo-details summary:hover { color: #000; }
+        .logo-details[open] summary {
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Generador de Etiquetas</h1>
+            <p>ORO CONSTRUCCIÓN S.A.S</p>
+        </header>
+        <main>
+            <div class="instructions">
+                <strong>Instrucciones:</strong> Sube tu archivo Excel y el logo. El Excel debe tener estas 6 columnas:
+                <div class="columns-list">
+                    <code>local</code>
+                    <code>fecha</code>
+                    <code>referencia</code>
+                    <code>cod</code>
+                    <code>precio</code>
+                    <code>copias</code>
+                </div>
+                <div style="margin-top: 10px; font-size: 13px; color: #666;">
+                    Tamaño de etiqueta: <strong>80 × 60 mm</strong> (landscape) — una etiqueta por página del PDF.
+                </div>
+            </div>
+
+            <form id="form">
+                <div class="form-group">
+                    <label for="excel">Archivo Excel (.xlsx)</label>
+                    <div class="file-input-wrapper" id="excel-wrapper">
+                        <div class="file-icon">📊</div>
+                        <div class="file-text" id="excel-text">Haz clic o arrastra el archivo Excel aquí</div>
+                        <input type="file" id="excel" name="excel" accept=".xlsx,.xls" required>
+                    </div>
+                </div>
+
+                <details class="logo-details">
+                    <summary>🖼️ Cambiar logo (opcional) — por defecto se usa el logo de ORO Construcción</summary>
+                    <div class="form-group" style="margin-top: 14px;">
+                        <div class="file-input-wrapper" id="logo-wrapper">
+                            <div class="file-icon">🖼️</div>
+                            <div class="file-text" id="logo-text">Haz clic o arrastra un logo diferente</div>
+                            <input type="file" id="logo" name="logo" accept="image/*">
+                        </div>
+                    </div>
+                </details>
+
+                <div class="actions">
+                    <button type="button" class="btn-secondary" id="btnClear">🗑️ Limpiar</button>
+                    <button type="button" class="btn-secondary" id="btnPreview">Vista previa</button>
+                    <button type="submit" class="btn-primary" id="btnGenerate">Generar PDF</button>
+                </div>
+            </form>
+
+            <div class="status" id="status"></div>
+        </main>
+        <footer>
+            Aplicación local — Tus archivos no salen de tu computador
+        </footer>
+    </div>
+
+    <script>
+        const excelInput = document.getElementById('excel');
+        const logoInput = document.getElementById('logo');
+        const excelWrapper = document.getElementById('excel-wrapper');
+        const logoWrapper = document.getElementById('logo-wrapper');
+        const excelText = document.getElementById('excel-text');
+        const logoText = document.getElementById('logo-text');
+        const form = document.getElementById('form');
+        const btnGenerate = document.getElementById('btnGenerate');
+        const btnPreview = document.getElementById('btnPreview');
+        const btnClear = document.getElementById('btnClear');
+        const status = document.getElementById('status');
+
+        // Guardar URLs creadas para revocarlas después (evita fugas de memoria)
+        const blobUrlsToCleanup = [];
+
+        function showStatus(message, type) {
+            status.className = 'status show ' + type;
+            status.innerHTML = message;
+        }
+        function hideStatus() { status.className = 'status'; }
+
+        function clearAll() {
+            // Resetear input de Excel
+            excelInput.value = '';
+            excelText.innerHTML = 'Haz clic o arrastra el archivo Excel aquí';
+            excelWrapper.classList.remove('has-file');
+            // Resetear input de logo
+            logoInput.value = '';
+            logoText.innerHTML = 'Haz clic o arrastra un logo diferente';
+            logoWrapper.classList.remove('has-file');
+            // Limpiar status
+            hideStatus();
+            // Liberar URLs de blobs previos (libera memoria del navegador)
+            while (blobUrlsToCleanup.length > 0) {
+                URL.revokeObjectURL(blobUrlsToCleanup.pop());
+            }
+        }
+
+        excelInput.addEventListener('change', () => {
+            if (excelInput.files.length > 0) {
+                excelText.innerHTML = 'Archivo seleccionado: <div class="file-name">' + excelInput.files[0].name + '</div>';
+                excelWrapper.classList.add('has-file');
+            }
+        });
+        logoInput.addEventListener('change', () => {
+            if (logoInput.files.length > 0) {
+                logoText.innerHTML = 'Logo seleccionado: <div class="file-name">' + logoInput.files[0].name + '</div>';
+                logoWrapper.classList.add('has-file');
+            }
+        });
+
+        btnClear.addEventListener('click', () => {
+            clearAll();
+            showStatus('✨ Formulario limpio. Listo para un nuevo Excel.', 'info');
+            setTimeout(hideStatus, 2500);
+        });
+
+        async function submitForm(url, action) {
+            if (!excelInput.files.length) {
+                showStatus('⚠️ Selecciona un archivo Excel primero.', 'error');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('excel', excelInput.files[0]);
+            if (logoInput.files.length) formData.append('logo', logoInput.files[0]);
+
+            btnGenerate.disabled = true;
+            btnPreview.disabled = true;
+            btnClear.disabled = true;
+            showStatus('<span class="spinner"></span> Generando ' + action + '...', 'info');
+
+            try {
+                const response = await fetch(url, { method: 'POST', body: formData });
+                if (!response.ok) {
+                    const err = await response.json();
+                    showStatus('❌ Error: ' + err.error, 'error');
+                    return;
+                }
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                blobUrlsToCleanup.push(blobUrl);
+
+                if (action === 'vista previa') {
+                    window.open(blobUrl, '_blank');
+                    showStatus('✅ Vista previa abierta. Pulsa "Limpiar" para cargar otro Excel.', 'success');
+                } else {
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = 'etiquetas_oro.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    showStatus('✅ ¡PDF descargado! Pulsa "Limpiar" para cargar otro Excel.', 'success');
+                }
+            } catch (err) {
+                showStatus('❌ Error de conexión: ' + err.message + '. Verifica que la aplicación siga abierta en PowerShell.', 'error');
+            } finally {
+                btnGenerate.disabled = false;
+                btnPreview.disabled = false;
+                btnClear.disabled = false;
+            }
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            submitForm('/generar', 'PDF');
+        });
+        btnPreview.addEventListener('click', () => {
+            submitForm('/vista-previa', 'vista previa');
+        });
+
+        // Al cargar la página siempre empieza limpio (aunque el navegador haga caché)
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                // La página se restauró del caché del navegador: limpiar todo
+                clearAll();
+            }
+        });
+    </script>
+</body>
+</html>
