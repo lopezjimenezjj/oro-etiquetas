@@ -1,38 +1,73 @@
-#!/bin/bash
-echo "============================================================"
-echo "  GENERADOR DE ETIQUETAS - ORO Construccion S.A.S"
-echo "============================================================"
-echo ""
+@echo off
+title Generador de Etiquetas - ORO Construccion
+echo ============================================================
+echo   GENERADOR DE ETIQUETAS - ORO Construccion S.A.S
+echo ============================================================
+echo.
 
-# Verificar si Python esta instalado
-if ! command -v python3 &> /dev/null; then
-    echo "[ERROR] Python 3 no esta instalado."
-    echo "Instalalo desde https://www.python.org/downloads/"
-    read -p "Presiona Enter para salir..."
-    exit 1
-fi
+REM === Cerrar cualquier instancia previa colgada ===
+echo Verificando que no haya una instancia previa corriendo...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5000 ^| findstr LISTENING') do (
+    echo Cerrando proceso previo (PID %%a)...
+    taskkill /F /PID %%a >nul 2>&1
+)
 
-# Moverse al directorio del script
-cd "$(dirname "$0")"
+REM === Verificar si Python esta instalado ===
+python --version >nul 2>&1
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Python no esta instalado o no esta en el PATH.
+    echo.
+    echo Descarga Python 3.12 desde https://www.python.org/downloads/
+    echo Durante la instalacion, marca la opcion "Add Python to PATH".
+    echo.
+    pause
+    exit /b 1
+)
 
-# Crear entorno virtual si no existe
-if [ ! -d "venv" ]; then
-    echo "Creando entorno virtual por primera vez..."
-    python3 -m venv venv
-fi
+REM === Crear entorno virtual si no existe ===
+if not exist "venv" (
+    echo Creando entorno virtual por primera vez...
+    python -m venv venv
+    if errorlevel 1 (
+        echo.
+        echo [ERROR] No se pudo crear el entorno virtual.
+        pause
+        exit /b 1
+    )
+)
 
-# Activar entorno virtual
-source venv/bin/activate
+REM === Activar entorno virtual ===
+call venv\Scripts\activate.bat
 
-# Instalar dependencias si no estan instaladas
-if ! pip show flask &> /dev/null; then
-    echo "Instalando dependencias por primera vez..."
-    echo "Esto puede tardar unos minutos..."
+REM === Instalar dependencias si no estan instaladas ===
+pip show flask >nul 2>&1
+if errorlevel 1 (
+    echo Instalando dependencias por primera vez...
+    echo Esto puede tardar unos minutos...
+    python -m pip install --upgrade pip
     pip install -r requirements.txt
-fi
+    if errorlevel 1 (
+        echo.
+        echo [ERROR] No se pudieron instalar las dependencias.
+        echo Si ves errores sobre pandas, asegurate de tener Python 3.12
+        echo (Python 3.13+ a veces da problemas con pandas).
+        pause
+        exit /b 1
+    )
+)
 
-echo ""
-echo "Iniciando aplicacion..."
-echo "La aplicacion se abrira automaticamente en tu navegador."
-echo ""
-python3 app.py
+echo.
+echo ============================================================
+echo   Iniciando aplicacion...
+echo   La aplicacion se abrira automaticamente en tu navegador.
+echo.
+echo   NO CIERRES ESTA VENTANA mientras uses la aplicacion.
+echo   Para detener: presiona CTRL+C o cierra esta ventana.
+echo ============================================================
+echo.
+python app.py
+
+echo.
+echo La aplicacion se ha detenido.
+pause
