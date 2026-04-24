@@ -9,9 +9,10 @@ import io
 import gc
 import tempfile
 import webbrowser
+from datetime import datetime, date
 from threading import Timer
 from flask import Flask, render_template, request, send_file, jsonify
-import pandas as pd
+from openpyxl import load_workbook
 from reportlab.lib.pagesizes import landscape
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
@@ -54,24 +55,61 @@ def normalize_column_name(name):
     return name
 
 
-def validate_excel(df):
-    """Valida que el DataFrame tenga las columnas requeridas."""
-    # Normalizar nombres de columnas
-    df.columns = [normalize_column_name(c) for c in df.columns]
+def read_excel_rows(excel_file):
+    """
+    Lee un archivo Excel y devuelve (rows, error_message).
+    rows es una lista de diccionarios con las claves normalizadas.
+    Si hay error, rows es None y error_message explica qué falló.
+    """
+    try:
+        wb = load_workbook(excel_file, data_only=True, read_only=True)
+        ws = wb.active
+    except Exception as e:
+        return None, f"No se pudo leer el Excel: {str(e)}"
 
-    missing = [col for col in EXPECTED_COLUMNS if col not in df.columns]
+    # Leer la primera fila como headers
+    rows_iter = ws.iter_rows(values_only=True)
+    try:
+        header_row = next(rows_iter)
+    except StopIteration:
+        wb.close()
+        return None, "El archivo Excel está vacío"
+
+    headers = [normalize_column_name(h) for h in header_row]
+
+    # Validar columnas requeridas
+    missing = [col for col in EXPECTED_COLUMNS if col not in headers]
     if missing:
-        return False, f"Faltan columnas en el Excel: {', '.join(missing)}. " \
-                      f"Se esperan: {', '.join(EXPECTED_COLUMNS)}"
-    return True, ""
+        wb.close()
+        return None, (f"Faltan columnas en el Excel: {', '.join(missing)}. "
+                      f"Se esperan: {', '.join(EXPECTED_COLUMNS)}")
+
+    # Convertir cada fila en diccionario
+    rows = []
+    for row_values in rows_iter:
+        # Saltar filas completamente vacías
+        if all(v is None or (isinstance(v, str) and v.strip() == '') for v in row_values):
+            continue
+        row_dict = {}
+        for i, header in enumerate(headers):
+            if i < len(row_values):
+                row_dict[header] = row_values[i]
+            else:
+                row_dict[header] = None
+        rows.append(row_dict)
+
+    wb.close()
+    return rows, ""
 
 
 def format_value(value):
     """Formatea un valor de celda para mostrarlo como texto limpio."""
-    if pd.isna(value):
+    if value is None:
         return ''
-    # Si es fecha (timestamp de pandas), formatear como dd/mm/yyyy
-    if isinstance(value, pd.Timestamp):
+    # Fechas de openpyxl vienen como datetime o date
+    if isinstance(value, datetime):
+        return value.strftime('%d/%m/%Y')
+    if isinstance(value, date):
         return value.strftime('%d/%m/%Y')
     # Si es float pero entero (ej 123.0 -> 123)
     if isinstance(value, float) and value.is_integer():
@@ -81,7 +119,7 @@ def format_value(value):
 
 def format_precio(value):
     """Formatea el precio con separador de miles y símbolo $."""
-    if pd.isna(value):
+    if value is None:
         return ''
     try:
         num = float(value)
@@ -242,8 +280,9 @@ def draw_label(c, data, logo_reader):
     c.drawCentredString(w / 2, margin + 4 * mm, precio)
 
 
-def generate_pdf(df, logo_bytes):
-    """Genera el PDF con una etiqueta por página, repetida según 'copias'."""
+def generate_pdf(rows, logo_bytes):
+    """Genera el PDF con una etiqueta por página, repetida según 'copias'.
+    rows: lista de diccionarios con las claves de EXPECTED_COLUMNS."""
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=PAGE_SIZE)
 
@@ -264,9 +303,9 @@ def generate_pdf(df, logo_bytes):
             logo_reader = None
 
     total_labels = 0
-    for _, row in df.iterrows():
+    for row in rows:
         try:
-            copias = int(float(row.get('copias', 1)))
+            copias = int(float(row.get('copias', 1) or 1))
         except (ValueError, TypeError):
             copias = 1
         if copias < 1:
@@ -305,25 +344,22 @@ def generar():
     else:
         logo_bytes = load_default_logo()
 
-    # Leer Excel
-    try:
-        df = pd.read_excel(excel_file)
-    except Exception as e:
-        return jsonify({'error': f'No se pudo leer el Excel: {str(e)}'}), 400
+    # Leer y validar Excel
+    rows, error = read_excel_rows(excel_file)
+    if error:
+        return jsonify({'error': error}), 400
 
-    # Validar columnas
-    valid, msg = validate_excel(df)
-    if not valid:
-        return jsonify({'error': msg}), 400
+    if not rows:
+        return jsonify({'error': 'El Excel no tiene filas de datos'}), 400
 
     # Generar PDF
     try:
-        pdf_buffer, total = generate_pdf(df, logo_bytes)
+        pdf_buffer, total = generate_pdf(rows, logo_bytes)
     except Exception as e:
         return jsonify({'error': f'Error generando PDF: {str(e)}'}), 500
     finally:
-        # Liberar explícitamente la memoria del DataFrame y logo
-        del df
+        # Liberar explícitamente memoria
+        rows = None
         logo_bytes = None
         gc.collect()
 
@@ -348,21 +384,19 @@ def vista_previa():
     else:
         logo_bytes = load_default_logo()
 
-    try:
-        df = pd.read_excel(excel_file)
-    except Exception as e:
-        return jsonify({'error': f'No se pudo leer el Excel: {str(e)}'}), 400
+    rows, error = read_excel_rows(excel_file)
+    if error:
+        return jsonify({'error': error}), 400
 
-    valid, msg = validate_excel(df)
-    if not valid:
-        return jsonify({'error': msg}), 400
+    if not rows:
+        return jsonify({'error': 'El Excel no tiene filas de datos'}), 400
 
-    # Solo primera fila, sin repetir copias
-    df_preview = df.head(1).copy()
-    df_preview['copias'] = 1
+    # Solo primera fila, con copias forzadas a 1
+    first_row = dict(rows[0])
+    first_row['copias'] = 1
 
     try:
-        pdf_buffer, _ = generate_pdf(df_preview, logo_bytes)
+        pdf_buffer, _ = generate_pdf([first_row], logo_bytes)
     except Exception as e:
         return jsonify({'error': f'Error generando vista previa: {str(e)}'}), 500
 
